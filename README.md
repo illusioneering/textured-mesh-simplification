@@ -4,7 +4,7 @@ TypeScript implementation of the mesh simplification and texture resampling meth
 
 This implementation was agentically engineered by [Evan Suma Rosenberg](https://illusioneering.cs.umn.edu/) using OpenAI Codex and GPT 5.5. It is released under the MIT License.
 
-A live browser demo is available on [GitHub Pages](https://evansumarosenberg.github.io/mesh-simplification/).
+A live browser demo is available on [GitHub Pages](https://illusioneering.github.io/textured-mesh-simplification/).
 
 ## Overview
 
