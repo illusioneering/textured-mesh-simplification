@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Mesh Simplification</title>
+    </head>
+    <body>
+        <div id="app" class="app-shell">
+            <header class="app-header">
+                <div>
+                    <h1>Textured Mesh Simplification</h1>
+                    <p>
+                        TypeScript implementation of
+                        <a href="https://dl.acm.org/doi/abs/10.1145/3763277"
+                            >Simplifying textured triangle meshes in the wild</a
+                        >
+                        by Liu, Zhang, and Yuksel. Agentically engineered by
+                        <a href="https://illusioneering.cs.umn.edu/"
+                            >Evan Suma Rosenberg</a
+                        >
+                        using Codex and GPT 5.5. Source code available on
+                        <a
+                            href="https://github.com/illusioneering/textured-mesh-simplification"
+                            >GitHub</a
+                        >.
+                    </p>
+                </div>
+            </header>
+            <main class="app-main">
+                <aside
+                    id="controls"
+                    class="panel controls-panel"
+                    aria-label="Processing controls"
+                ></aside>
+                <section class="workspace">
+                    <div class="viewport-grid">
+                        <section class="panel viewport-panel">
+                            <h2>Input model</h2>
+                            <div id="input-viewport" class="viewport"></div>
+                        </section>
+                        <section class="panel viewport-panel">
+                            <h2>Processed model</h2>
+                            <div id="output-viewport" class="viewport"></div>
+                        </section>
+                    </div>
+                    <div class="info-grid">
+                        <section class="panel">
+                            <h2>Statistics</h2>
+                            <div id="stats" class="stats-grid"></div>
+                        </section>
+                        <section class="panel">
+                            <h2>Status</h2>
+                            <div
+                                id="status-log"
+                                class="status-log"
+                                role="log"
+                                aria-live="polite"
+                            ></div>
+                        </section>
+                    </div>
+                </section>
+            </main>
+        </div>
+        <script type="module" src="/src/web/main.ts"></script>
+    </body>
+</html>

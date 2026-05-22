@@ -1,0 +1,32 @@
+{
+  "name": "textured-mesh-simplification",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "simplify": "tsx src/local/main.ts",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "smoke:browser": "tsx scripts/productionBrowserSmoke.ts",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "^4.3.0",
+    "commander": "^14.0.3",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0",
+    "three": "^0.184.0",
+    "watlas": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "@types/pngjs": "^6.0.5",
+    "@types/three": "^0.184.1",
+    "tsx": "^4.22.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.13",
+    "vitest": "^4.1.6"
+  }
+}
