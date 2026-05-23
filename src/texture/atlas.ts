@@ -3,19 +3,14 @@ import { Vector2 } from 'three';
 import type { RawMesh } from '../simplification/types';
 import type { AtlasLayout } from './types';
 
-export type AtlasInputFaceUvs = readonly (readonly [Vector2, Vector2, Vector2])[];
-
 export interface WatlasMeshBuffers {
   positions: Float32Array;
   indices: Uint32Array;
-  uvs?: Float32Array;
-  sourceVertexByXref?: Uint32Array;
 }
 
 export interface AtlasOptions {
   textureSize: number;
   padding: number;
-  inputFaceUvs?: AtlasInputFaceUvs;
 }
 
 export const WATLAS_MIN_REASONABLE_EXTENT = 1;
@@ -44,7 +39,7 @@ function validateOptions(faceCount: number, options: AtlasOptions): void {
 export function watlasChartOptions(): watlas.ChartOptions {
   return {
     fixWinding: false,
-    useInputMeshUvs: true,
+    useInputMeshUvs: false,
   };
 }
 
@@ -61,7 +56,7 @@ export function watlasPackOptions(options: AtlasOptions, texelsPerUnit?: number)
   };
 }
 
-export function meshToWatlasBuffers(mesh: RawMesh, inputFaceUvs?: AtlasInputFaceUvs): WatlasMeshBuffers {
+export function meshToWatlasBuffers(mesh: RawMesh): WatlasMeshBuffers {
   let minX = Infinity;
   let minY = Infinity;
   let minZ = Infinity;
@@ -82,82 +77,31 @@ export function meshToWatlasBuffers(mesh: RawMesh, inputFaceUvs?: AtlasInputFace
     maxZ = Math.max(maxZ, position.z);
   }
 
-  const centerX = (minX + maxX) / 2;
-  const centerY = (minY + maxY) / 2;
-  const centerZ = (minZ + maxZ) / 2;
-  const maxExtent = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
+  const hasPositions = mesh.positions.length > 0;
+  const centerX = hasPositions ? (minX + maxX) / 2 : 0;
+  const centerY = hasPositions ? (minY + maxY) / 2 : 0;
+  const centerZ = hasPositions ? (minZ + maxZ) / 2 : 0;
+  const maxExtent = hasPositions ? Math.max(maxX - minX, maxY - minY, maxZ - minZ) : 0;
   const positionScale = watlasPositionScaleForExtent(maxExtent);
 
-  const scaledPosition = (vertexId: number): [number, number, number] => {
-    const position = mesh.positions[vertexId]!;
-    return [
-      (position.x - centerX) * positionScale,
-      (position.y - centerY) * positionScale,
-      (position.z - centerZ) * positionScale,
-    ];
-  };
-
+  const positions = new Float32Array(mesh.positions.length * 3);
+  mesh.positions.forEach((position, index) => {
+    positions[index * 3] = (position.x - centerX) * positionScale;
+    positions[index * 3 + 1] = (position.y - centerY) * positionScale;
+    positions[index * 3 + 2] = (position.z - centerZ) * positionScale;
+  });
   const indices = new Uint32Array(mesh.faces.length * 3);
-  const appendValidatedFaceIndices = (onCorner: (faceIndex: number, corner: number, vertexId: number) => number): void => {
-    mesh.faces.forEach((face, faceIndex) => {
-      for (let corner = 0; corner < 3; corner += 1) {
-        const vertexId = face[corner]!;
-        if (!Number.isInteger(vertexId) || vertexId < 0 || vertexId >= mesh.positions.length) {
-          throw new Error(`Output face ${faceIndex} corner ${corner} references invalid vertex ${vertexId}.`);
-        }
-        indices[faceIndex * 3 + corner] = onCorner(faceIndex, corner, vertexId);
+  mesh.faces.forEach((face, faceIndex) => {
+    for (let corner = 0; corner < 3; corner += 1) {
+      const vertexId = face[corner]!;
+      if (!Number.isInteger(vertexId) || vertexId < 0 || vertexId >= mesh.positions.length) {
+        throw new Error(`Output face ${faceIndex} corner ${corner} references invalid vertex ${vertexId}.`);
       }
-    });
-  };
-
-  if (inputFaceUvs === undefined) {
-    const positions = new Float32Array(mesh.positions.length * 3);
-    mesh.positions.forEach((_position, index) => {
-      const [x, y, z] = scaledPosition(index);
-      positions[index * 3] = x;
-      positions[index * 3 + 1] = y;
-      positions[index * 3 + 2] = z;
-    });
-    appendValidatedFaceIndices((_faceIndex, _corner, vertexId) => vertexId);
-    return { positions, indices };
-  }
-
-  if (inputFaceUvs.length !== mesh.faces.length) {
-    throw new Error(`inputFaceUvs length ${inputFaceUvs.length} must match output mesh face count ${mesh.faces.length}.`);
-  }
-
-  const vertexByKey = new Map<string, number>();
-  const packedPositions: number[] = [];
-  const packedUvs: number[] = [];
-  const sourceVertexByXref: number[] = [];
-  appendValidatedFaceIndices((faceIndex, corner, vertexId) => {
-    const faceUvs = inputFaceUvs[faceIndex];
-    const inputUv = faceUvs?.[corner];
-    if (inputUv === undefined) {
-      throw new Error(`inputFaceUvs face ${faceIndex} must provide three UV corners.`);
+      indices[faceIndex * 3 + corner] = vertexId;
     }
-    if (!Number.isFinite(inputUv.x) || !Number.isFinite(inputUv.y)) {
-      throw new Error(`Output face ${faceIndex} corner ${corner} has non-finite input UV coordinates.`);
-    }
-    const key = `${vertexId}/${inputUv.x}/${inputUv.y}`;
-    const existingVertexId = vertexByKey.get(key);
-    if (existingVertexId !== undefined) return existingVertexId;
-
-    const watlasVertexId = sourceVertexByXref.length;
-    vertexByKey.set(key, watlasVertexId);
-    const [x, y, z] = scaledPosition(vertexId);
-    packedPositions.push(x, y, z);
-    packedUvs.push(inputUv.x, inputUv.y);
-    sourceVertexByXref.push(vertexId);
-    return watlasVertexId;
   });
 
-  return {
-    positions: new Float32Array(packedPositions),
-    indices,
-    uvs: new Float32Array(packedUvs),
-    sourceVertexByXref: new Uint32Array(sourceVertexByXref),
-  };
+  return { positions, indices };
 }
 
 function assignCornerByXref(face: readonly [number, number, number], usedCorners: boolean[], xref: number): number {
@@ -170,7 +114,7 @@ function assignCornerByXref(face: readonly [number, number, number], usedCorners
   throw new Error(`watlas returned vertex xref ${xref} that does not match the source face.`);
 }
 
-function extractAtlasLayout(mesh: RawMesh, atlas: watlas.Atlas, options: AtlasOptions, sourceVertexByXref?: Uint32Array): AtlasLayout {
+function extractAtlasLayout(mesh: RawMesh, atlas: watlas.Atlas, options: AtlasOptions): AtlasLayout {
   if (atlas.meshCount !== 1) throw new Error(`Expected watlas to return one mesh, got ${atlas.meshCount}.`);
   if (atlas.atlasCount !== 1) {
     throw new Error('watlas produced multiple atlases. Increase --texture-size or reduce --target-faces.');
@@ -205,11 +149,10 @@ function extractAtlasLayout(mesh: RawMesh, atlas: watlas.Atlas, options: AtlasOp
       if (vertex.atlasIndex !== 0) {
         throw new Error('watlas returned a vertex outside the first atlas. Increase --texture-size or reduce --target-faces.');
       }
-      const sourceVertexId = sourceVertexByXref === undefined ? vertex.xref : sourceVertexByXref[vertex.xref];
-      if (sourceVertexId === undefined) {
+      if (!Number.isInteger(vertex.xref) || vertex.xref < 0 || vertex.xref >= mesh.positions.length) {
         throw new Error(`watlas returned vertex xref ${vertex.xref} that does not map to a source vertex.`);
       }
-      const sourceCorner = assignCornerByXref(face, usedCorners, sourceVertexId);
+      const sourceCorner = assignCornerByXref(face, usedCorners, vertex.xref);
       const px = vertex.uv[0];
       const py = vertex.uv[1];
       if (!Number.isFinite(px) || !Number.isFinite(py) || px < 0 || py < 0 || px > options.textureSize || py > options.textureSize) {
@@ -251,7 +194,7 @@ export async function createInjectiveAtlas(mesh: RawMesh, options: AtlasOptions)
   }
 
   await ensureWatlasInitialized();
-  const buffers = meshToWatlasBuffers(mesh, options.inputFaceUvs);
+  const buffers = meshToWatlasBuffers(mesh);
   const atlas = new watlas.Atlas();
   try {
     atlas.addMesh({
@@ -260,10 +203,9 @@ export async function createInjectiveAtlas(mesh: RawMesh, options: AtlasOptions)
       vertexPositionStride: 12,
       indexData: buffers.indices,
       indexCount: buffers.indices.length,
-      ...(buffers.uvs !== undefined ? { vertexUvData: buffers.uvs, vertexUvStride: 8 } : {}),
     });
     packAtlasCharts(atlas, options);
-    return extractAtlasLayout(mesh, atlas, options, buffers.sourceVertexByXref);
+    return extractAtlasLayout(mesh, atlas, options);
   } finally {
     atlas.delete();
   }
