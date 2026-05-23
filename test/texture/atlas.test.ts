@@ -168,7 +168,15 @@ describe('createInjectiveAtlas', () => {
     const buffers = meshToWatlasBuffers(mesh);
 
     expect(buffers.positions).toHaveLength(4 * 3);
+    expect(buffers.positions).toEqual(new Float32Array([
+      -0.5, -0.5, 0,
+      0.5, -0.5, 0,
+      0.5, 0.5, 0,
+      -0.5, 0.5, 0,
+    ]));
     expect(buffers.indices).toEqual(new Uint32Array([0, 1, 2, 0, 2, 3]));
+    expect((buffers as { uvs?: unknown }).uvs).toBeUndefined();
+    expect((buffers as { sourceVertexByXref?: unknown }).sourceVertexByXref).toBeUndefined();
   });
 
   it('uses watlas charts to share UVs across a planar mesh', async () => {
