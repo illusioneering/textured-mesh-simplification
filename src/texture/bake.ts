@@ -21,7 +21,6 @@ import type {
   StandardBakedTextureSlot,
   TexturedRawMesh,
 } from './types';
-import { deriveWatlasInputFaceUvs } from './watlasInputUvs';
 
 export interface BakeTextureOptions extends AtlasOptions {
   gutterPasses?: number;
@@ -115,17 +114,9 @@ export async function bakeStandardMaterialTextures(options: {
   history: CollapseHistoryRecord[];
   transferredAttributes?: TransferredMeshAttributes;
 } & BakeTextureOptions): Promise<BakedTextureResult> {
-  const inputFaceUvs = deriveWatlasInputFaceUvs({
-    source: options.source,
-    outputRawMesh: options.outputRawMesh,
-    outputFaceIds: options.outputFaceIds,
-    history: options.history,
-    ...(options.transferredAttributes ? { transferredAttributes: options.transferredAttributes } : {}),
-  });
   const atlas = await createInjectiveAtlas(options.outputRawMesh, {
     textureSize: options.textureSize,
     padding: options.padding,
-    ...(inputFaceUvs ? { inputFaceUvs } : {}),
   });
   options.onProgress?.({
     stage: 'atlas-created',
