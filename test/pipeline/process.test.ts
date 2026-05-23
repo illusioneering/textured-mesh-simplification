@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Vector2, Vector3 } from 'three';
 import type { TransferredMeshAttributes } from '../../src/simplification/attributes';
 import type { RawMesh, RawSimplificationResult } from '../../src/simplification/types';
-import type { AtlasInputFaceUvs, AtlasOptions } from '../../src/texture/atlas';
+import type { AtlasOptions } from '../../src/texture/atlas';
 import type { SourceMaterial, TexturedRawMesh } from '../../src/texture/types';
 import {
   bakeTextureForSimplifiedGeometry,
@@ -339,15 +339,15 @@ describe('processing pipeline', () => {
     expect(result.baked.additionalTextures.map((texture) => texture.slot)).toContain('normal');
   });
 
-  it('passes transferred vertex UVs from deferred baking into atlas generation', async () => {
+  it('does not pass transferred vertex UVs into atlas generation during deferred baking', async () => {
     vi.resetModules();
-    let capturedInputFaceUvs: AtlasInputFaceUvs | undefined;
+    const capturedAtlasOptions: AtlasOptions[] = [];
     vi.doMock('../../src/texture/atlas', async () => {
       const actual = await vi.importActual<typeof import('../../src/texture/atlas')>('../../src/texture/atlas');
       return {
         ...actual,
         createInjectiveAtlas: vi.fn(async (_mesh: RawMesh, options: AtlasOptions) => {
-          capturedInputFaceUvs = options.inputFaceUvs;
+          capturedAtlasOptions.push(options);
           return {
             textureSize: options.textureSize,
             padding: options.padding,
@@ -413,11 +413,7 @@ describe('processing pipeline', () => {
       },
     });
 
-    expect(capturedInputFaceUvs?.[0]).toEqual([
-      new Vector2(0.25, 0.25),
-      new Vector2(0.75, 0.25),
-      new Vector2(0.25, 0.75),
-    ]);
+    expect(capturedAtlasOptions).toEqual([{ textureSize: 16, padding: 1 }]);
   });
 
   it('bakes repeatedly from a captured geometry simplification without re-running simplification', async () => {
