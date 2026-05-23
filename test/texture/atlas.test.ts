@@ -108,10 +108,10 @@ function tinyShellPatchMesh() {
 }
 
 describe('createInjectiveAtlas', () => {
-  it('uses input mesh UV charting and explicit non-bilinear block-aligned packing', () => {
+  it('uses geometry-only watlas charting and explicit non-bilinear block-aligned packing', () => {
     expect(watlasChartOptions()).toEqual({
       fixWinding: false,
-      useInputMeshUvs: true,
+      useInputMeshUvs: false,
     });
 
     expect(watlasPackOptions({ textureSize: 64, padding: 2 })).toEqual({
@@ -154,7 +154,7 @@ describe('createInjectiveAtlas', () => {
     expect(watlasPositionScaleForExtent(hugeExtent)).toBeCloseTo(WATLAS_TARGET_EXTENT / hugeExtent, 12);
   });
 
-  it('builds watlas input vertices from source vertex and input UV identity', () => {
+  it('builds watlas input vertices directly from output mesh positions and faces', () => {
     const mesh = {
       positions: [
         new Vector3(0, 0, 0),
@@ -164,35 +164,11 @@ describe('createInjectiveAtlas', () => {
       ],
       faces: [[0, 1, 2] as [number, number, number], [0, 2, 3] as [number, number, number]],
     };
-    const inputFaceUvs = [
-      [new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1)],
-      [new Vector2(0, 0), new Vector2(0.25, 0.75), new Vector2(0, 1)],
-    ] as const;
 
-    const buffers = meshToWatlasBuffers(mesh, inputFaceUvs);
+    const buffers = meshToWatlasBuffers(mesh);
 
-    expect(buffers.positions).toHaveLength(5 * 3);
-    expect(buffers.uvs).toEqual(new Float32Array([
-      0, 0,
-      1, 0,
-      1, 1,
-      0.25, 0.75,
-      0, 1,
-    ]));
-    expect(buffers.indices).toEqual(new Uint32Array([0, 1, 2, 0, 3, 4]));
-    expect(buffers.sourceVertexByXref).toEqual(new Uint32Array([0, 1, 2, 2, 3]));
-  });
-
-  it('rejects input UV data that cannot describe every output face corner', () => {
-    const mesh = {
-      positions: [new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)],
-      faces: [[0, 1, 2] as [number, number, number]],
-    };
-
-    expect(() => meshToWatlasBuffers(mesh, [])).toThrow(/inputFaceUvs length/i);
-    expect(() => meshToWatlasBuffers(mesh, [[new Vector2(0, 0), new Vector2(Number.NaN, 0), new Vector2(0, 1)]])).toThrow(
-      /non-finite input UV/i,
-    );
+    expect(buffers.positions).toHaveLength(4 * 3);
+    expect(buffers.indices).toEqual(new Uint32Array([0, 1, 2, 0, 2, 3]));
   });
 
   it('uses watlas charts to share UVs across a planar mesh', async () => {
