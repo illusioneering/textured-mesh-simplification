@@ -2,7 +2,7 @@
 
 TypeScript implementation of the mesh simplification and texture resampling method described in [*Simplifying Textured Triangle Meshes in the Wild*](https://doi.org/10.1145/3763277). The project provides a reusable browser-safe simplification core, a Node.js CLI, and a Vite/Three.js browser app for loading, previewing, simplifying, texture baking, and exporting GLB/glTF assets.
 
-This implementation was agentically engineered by [Evan Suma Rosenberg](https://illusioneering.cs.umn.edu/) using OpenAI Codex and GPT 5.5. It is released under the MIT License.
+This implementation was agentically engineered by [Evan Suma Rosenberg](https://scholar.google.com/citations?user=Hg0rPkAAAAAJ) using OpenAI Codex and GPT 5.5. It is released under the MIT License.
 
 A live browser demo is available on [GitHub Pages](https://illusioneering.github.io/textured-mesh-simplification/).
 
